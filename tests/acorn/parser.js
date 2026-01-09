@@ -581,6 +581,56 @@ function parseConditional() {
 // === ASSIGNMENT EXPRESSION ===
 function parseAssignment() {
   const start = tokStart;
+  
+  // Check for arrow function: x => or (x) => or (x, y) =>
+  if (tokType === 'name') {
+    const savedPos = pos;
+    const savedTokStart = tokStart;
+    const savedTokType = tokType;
+    const savedTokVal = tokVal;
+    const paramName = tokVal;
+    nextToken();
+    if (tokType === '=>') {
+      return parseArrowFunction(start, [paramName]);
+    }
+    // Restore state
+    pos = savedPos;
+    tokStart = savedTokStart;
+    tokType = savedTokType;
+    tokVal = savedTokVal;
+  }
+  
+  if (tokType === '(') {
+    // Could be arrow function or grouped expression
+    const savedPos = pos;
+    const savedTokStart = tokStart;
+    nextToken();
+    const params = [];
+    while (tokType !== ')' && tokType !== 'eof') {
+      if (tokType === 'name') {
+        params.push(tokVal);
+        nextToken();
+        if (tokType === ',') nextToken();
+      } else if (tokType === '...') {
+        // rest param - it's an arrow
+        break;
+      } else {
+        break;
+      }
+    }
+    if (tokType === ')') {
+      nextToken();
+      if (tokType === '=>') {
+        return parseArrowFunction(start, params);
+      }
+    }
+    // Restore state and parse as grouped expression
+    pos = savedPos;
+    tokStart = savedTokStart;
+    tokType = '(';
+    tokVal = null;
+  }
+  
   let left = parseConditional();
   
   if (tokType === '=' || tokType === '+=' || tokType === '-=' ||
@@ -598,6 +648,30 @@ function parseAssignment() {
   }
   
   return left;
+}
+
+function parseArrowFunction(start, paramNames) {
+  nextToken(); // eat '=>'
+  const n = node('ArrowFunctionExpression', start);
+  n.id = null;
+  n.generator = false;
+  n.async = false;
+  n.expression = tokType !== '{';
+  
+  n.params = [];
+  for (let i = 0; i < paramNames.length; i++) {
+    const p = node('Identifier', start);
+    p.name = paramNames[i];
+    n.params.push(finishNode(p, start));
+  }
+  
+  if (tokType === '{') {
+    n.body = parseBlock();
+  } else {
+    n.body = parseAssignment();
+  }
+  
+  return finishNode(n, tokStart);
 }
 
 // === SEQUENCE EXPRESSION ===
@@ -1284,6 +1358,33 @@ test('parse default parameter', () => {
 test('parse rest parameter', () => {
   const ast = parse('function f(...args) {}');
   assertEquals(ast.body[0].params[0].type, 'RestElement');
+});
+
+// === ARROW FUNCTION TESTS ===
+test('parse arrow function single param', () => {
+  const ast = parse('x => x + 1');
+  assertEquals(ast.body[0].expression.type, 'ArrowFunctionExpression');
+  assertEquals(ast.body[0].expression.params.length, 1);
+  assertEquals(ast.body[0].expression.expression, true);
+});
+
+test('parse arrow function multiple params', () => {
+  const ast = parse('(a, b) => a + b');
+  assertEquals(ast.body[0].expression.type, 'ArrowFunctionExpression');
+  assertEquals(ast.body[0].expression.params.length, 2);
+});
+
+test('parse arrow function with block', () => {
+  const ast = parse('x => { return x }');
+  assertEquals(ast.body[0].expression.type, 'ArrowFunctionExpression');
+  assertEquals(ast.body[0].expression.expression, false);
+  assertEquals(ast.body[0].expression.body.type, 'BlockStatement');
+});
+
+test('parse arrow function no params', () => {
+  const ast = parse('() => 42');
+  assertEquals(ast.body[0].expression.type, 'ArrowFunctionExpression');
+  assertEquals(ast.body[0].expression.params.length, 0);
 });
 
 runTests();
