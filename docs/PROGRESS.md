@@ -1,23 +1,20 @@
 # Porfself Progress Tracker
 
-## Current Phase: Building the Parser
+## Current Phase: Parser Complete! 🎉
 
 ### ✅ Completed
 - [x] Repository setup
 - [x] Analyzed acorn module dependencies  
 - [x] Created feature test suite (28 tests)
-- [x] Created acorn-specific test suite (15 tests)
 - [x] Created closure characterization tests (15 tests)
 - [x] Identified critical blockers (closures)
-- [x] **Full tokenizer implementation (49 tests, all pass in Porffor!)**
+- [x] **Full tokenizer** (49 tests)
+- [x] **Full parser** (40 tests)
 
-### 🔄 In Progress
-- [ ] Expression parser
-- [ ] Statement parser
-
-### ⏳ Pending  
-- [ ] Full AST generation
-- [ ] Integration with Porffor's codegen
+### 🔄 Next Steps
+- [ ] Test against real code samples
+- [ ] Add remaining syntax (async/await, generators)
+- [ ] Integrate with Porffor's codegen
 - [ ] Self-hosting tests
 
 ## Test Results Summary
@@ -25,31 +22,58 @@
 | Test Suite | Node.js | Porffor | Notes |
 |------------|---------|---------|-------|
 | Feature tests | 28/28 | 27/28 | string.replace issue |
-| Acorn-specific | 15/15 | 11/15 | closure issues |
 | Closure tests | 15/15 | 2/15 | only globals & this work |
-| **Tokenizer** | **49/49** | **49/49** | **✅ Full pass!** |
+| **Tokenizer** | **49/49** | **49/49** | ✅ Full pass! |
+| **Parser** | **40/40** | **40/40** | ✅ Full pass! |
 
-## Tokenizer Coverage
+## Parser Coverage
 
-The tokenizer handles:
-- ✅ Numbers (int, float, hex, binary, octal, exponent)
-- ✅ Strings (single/double quote, escapes)
-- ✅ Template literals (basic)
-- ✅ All keywords (let, const, async, await, class, etc.)
-- ✅ All operators (=>, ..., ===, ??, ?., **, >>>, &&=, etc.)
-- ✅ Comments (line and block)
-- ✅ Identifiers
+### Expressions
+- ✅ Literals (number, string, boolean, null)
+- ✅ Identifiers, ThisExpression
+- ✅ Binary expressions (all operators)
+- ✅ Logical expressions (&&, ||, ??)
+- ✅ Unary/Update expressions
+- ✅ Conditional (ternary)
+- ✅ Assignment (all operators)
+- ✅ Member expressions (., [], ?.)
+- ✅ Call expressions
+- ✅ New expressions
+- ✅ Array literals (with spread)
+- ✅ Object literals (with spread, shorthand)
+- ✅ Arrow functions
+- ✅ Function expressions
+
+### Statements
+- ✅ Block statements
+- ✅ Variable declarations (var, let, const)
+- ✅ If/else statements
+- ✅ While statements
+- ✅ For statements (for, for-in, for-of)
+- ✅ Return statements
+- ✅ Throw statements
+- ✅ Try/catch/finally
+- ✅ Empty statements
+- ✅ Expression statements
+
+### Declarations
+- ✅ Function declarations
+- ✅ Class declarations (with extends)
+- ✅ Method definitions
+
+### Patterns
+- ✅ Object destructuring
+- ✅ Array destructuring
+- ✅ Rest elements
+- ✅ Default values
 
 ## Architecture
 
 **Closure-free design:**
 - Global state for parser position/tokens
 - No nested functions capturing outer scope
-- Explicit parameter passing where needed
+- Explicit state restore for lookahead
 
-## Next Steps
+## Repository
 
-1. Build expression parser (primary, unary, binary, ternary)
-2. Build statement parser (declarations, control flow)
-3. Generate AST compatible with acorn's format
-4. Test against acorn's test suite
+https://github.com/unbiasedzucchini/porfself
