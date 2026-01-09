@@ -6,55 +6,63 @@
 - [x] Repository setup
 - [x] Cloned acorn for reference
 - [x] Analyzed acorn module dependencies  
-- [x] Created feature test suite
+- [x] Created feature test suite (28 tests)
+- [x] Created acorn-specific test suite (15 tests)
+- [x] Created closure characterization tests (15 tests)
 - [x] Identified critical blockers
+- [x] Created proof-of-concept closure-free tokenizer (15 tests, all pass in Porffor!)
 
 ### 🔄 In Progress
-- [ ] Document all closure usages in acorn
+- [ ] Design closure-free parser architecture
 
-### ⏳ Pending
-- [ ] Create isolated tests for each acorn module
-- [ ] Choose path forward (fix closures vs rewrite parser)
-- [ ] Begin porting/fixing
+### ⏳ Pending  
+- [ ] Port full tokenizer
+- [ ] Port expression parser
+- [ ] Port statement parser
+- [ ] Integration testing with Porffor's codegen
 
-## Test Results
+## Test Results Summary
 
-### Feature Tests (tests/features/run-all.js)
-| Runtime | Passed | Failed | Notes |
-|---------|--------|--------|-------|
-| Node.js | 28/28 | 0 | Baseline |
-| Porffor | 27/28 | 1 | string.replace issue |
+| Test Suite | Node.js | Porffor | Notes |
+|------------|---------|---------|-------|
+| Feature tests | 28/28 | 27/28 | string.replace issue |
+| Acorn-specific | 15/15 | 11/15 | closure issues |
+| Closure tests | 15/15 | 2/15 | only globals & this work |
+| **Tokenizer PoC** | **15/15** | **15/15** | **✅ Full pass!** |
 
-### Acorn-Specific Tests (tests/features/acorn-specific.js)
-| Runtime | Passed | Failed | Notes |
-|---------|--------|--------|-------|
-| Node.js | 15/15 | 0 | Baseline |
-| Porffor | 11/15 | 4 | Closure issues |
+## Key Insight
 
-### Failed Tests in Porffor
-1. `hasOwn pattern` - Function.prototype.call not working
-2. `wordsRegexp pattern` - Closure issue
-3. `scope flags bitwise` - Closure issue  
-4. `keyword registration pattern` - Closure issue
+A closure-free tokenizer works perfectly in Porffor. This validates the approach:
+- Use global/module-level state instead of instance variables
+- Avoid nested functions that capture locals
+- Use explicit parameter passing
 
-## Blockers Summary
+## Closure Test Breakdown
 
-| Blocker | Severity | Status | Notes |
-|---------|----------|--------|-------|
-| Closures | 🔴 Critical | Blocking | Porffor limitation |
-| ES Modules | 🟡 Medium | Can workaround | Bundle acorn |
-| Function.call | 🟡 Medium | Can workaround | Rewrite patterns |
+| Pattern | Works in Porffor |
+|---------|------------------|
+| Access global from function | ✅ |
+| Closure over function parameter | ❌ |
+| Closure over local variable | ❌ |
+| Nested function closures | ❌ |
+| Arrow function closures | ❌ |
+| `this` in class methods | ✅ |
+| Callbacks capturing outer scope | ❌ |
 
-## Decision Log
+## Architecture Decision
 
-### 2024-XX-XX: Initial Analysis
-- Acorn has 13,507 tests
-- ~6300 lines of parser code
-- Heavy use of closures via `Parser.prototype` pattern
-- **Decision needed**: Fix Porffor closures OR write custom parser
+**Chosen path: Closure-free parser**
+
+Rather than trying to fix Porffor's closure support (complex, affects core codegen),
+we'll write a parser that doesn't use closures:
+
+1. Global state for parser position/context
+2. Explicit state object passed to functions where needed
+3. No returned closures - use objects with methods instead
 
 ## Next Steps
 
-1. **Immediate**: Investigate Porffor's closure handling in codegen.js
-2. **If fixable**: Add closure support to Porffor
-3. **If not fixable**: Design closure-free parser architecture
+1. Expand tokenizer to handle all JS tokens
+2. Build parser using same closure-free pattern
+3. Test against acorn's test suite
+4. Integrate with Porffor's codegen
